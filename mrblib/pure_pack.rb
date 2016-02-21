@@ -418,16 +418,18 @@ module PurePack
         a.size.times {|n|
           rr << num_to_bin(a[n].ord)
           r  << BASE64_R[rr.slice!(0,6).to_i(2)] if rr.size >= 6
+          r  << BASE64_R[rr.slice!(0,6).to_i(2)] if rr.size >= 6
         }
+        r << BASE64_R[(rr+"00000")[0,6].to_i(2)] if rr != ""
 
-        if conv_size == 0
+          if conv_size == 0
           r
         else
           if last_c == "*" || last_c == ""
             split_size = 60
           else
             split_size = (last_c.to_i/3).to_i * 4
-            split_size = 60 if split_zise == 0
+            split_size = 60 if split_size == 0
           end
           str_nsplit((r+("="*(3-((r.size+3)%4)))), split_size).map {|n| n+"\n"}.join
         end
