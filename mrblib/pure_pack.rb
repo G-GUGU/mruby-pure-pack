@@ -297,13 +297,16 @@ module PurePack
     #------------
     def pack_ascii(ary, offset, conv_size, ret_cnt, options)
       cmd, last_c = options
-
       r = ary[offset][0, conv_size]
+
       if cmd == :A
         r << " " * (conv_size - r.size)
-      elsif cmd == :Z
+      elsif cmd == :a
+        r << "\x00" * (conv_size - r.size)
+      else # cmd == :Z
         r << ((last_c == "*") ? "\x00" : "\x00" * (conv_size - r.size))
       end
+
       ret_cnt[0] = 1 ; r
     end
 
@@ -421,8 +424,9 @@ module PurePack
           r  << BASE64_R[rr.slice!(0,6).to_i(2)] if rr.size >= 6
         }
         r << BASE64_R[(rr+"00000")[0,6].to_i(2)] if rr != ""
+        r = r+("="*(3-((r.size+3)%4)))
 
-          if conv_size == 0
+        if conv_size == 0
           r
         else
           if last_c == "*" || last_c == ""
@@ -431,7 +435,7 @@ module PurePack
             split_size = (last_c.to_i/3).to_i * 4
             split_size = 60 if split_size == 0
           end
-          str_nsplit((r+("="*(3-((r.size+3)%4)))), split_size).map {|n| n+"\n"}.join
+          str_nsplit(r, split_size).join("\n")<<"\n"
         end
       end
     end
