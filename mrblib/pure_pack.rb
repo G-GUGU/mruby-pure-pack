@@ -229,14 +229,13 @@ module PurePack
       a, b = (0xff & num).divmod(16); BINARY[a]+BINARY[b]
     end
 
-    def int_split(i, n, ary_size=nil) # int_split(12345678, 1000) => [12, 345, 678]
-      r = [i] ; r.unshift(*r.shift.divmod(n)) until r[0].abs < n.abs
-      return r unless ary_size
-      (x = (ary_size-r.size)) > 0 ? [0]*x+r : r[-x, ary_size]
+    def int_split(i, n) # int_split(12345678, 1000) => [12, 345, 678]
+      n = n.to_i ; r = [i] ; return r if (n == 0 || n == 1)
+      r.unshift(*r.shift.divmod(n)) until r[0].abs < n.abs ; r
     end
 
     def str_nsplit(str, n) # str_nsplit("0123456789", 3) => ["012", "345", "678", "9]
-      str.each_char.each_slice(n).map(&:join)
+      s  = [] ; o = 0 ; (s << str[o, n] ; o += n) while str[o] ; s
     end
 
     def analyze_template(str)
@@ -435,7 +434,7 @@ module PurePack
             split_size = (last_c.to_i/3).to_i * 4
             split_size = 60 if split_size == 0
           end
-          str_nsplit(r, split_size).join("\n")<<"\n"
+          str_nsplit(r, split_size).join("\n") << "\n"
         end
       end
     end
@@ -502,9 +501,10 @@ module PurePack
       conv_size.times {|i|
         raise ArgumentError, "too few arguments" if ary[offset+i] == nil
 
-        r << (endian_little ?
-        int_split(ary[offset+i], 256, byte_size).map{|n| (0xff & n).chr}.reverse :
-        int_split(ary[offset+i], 256, byte_size).map{|n| (0xff & n).chr}).join
+        n = int_split(ary[offset+i], 256)
+        n = n.size >= byte_size ? n[0, byte_size] : (n[0] < 0 ? [-1] : [0])*(byte_size-n.size)+n
+        n.reverse! if endian_little
+        n.each{|m| r << (0xff & m).chr}
 
         cnt += 1
       }
