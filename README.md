@@ -1,7 +1,8 @@
 Puck and Unpack methods
 =========
 
-Add Almost all code is written by ruby. 20 to 100 times slower than CRuby.
+Add Array#pack and String#unpack methods on MRuby. Almost all code is written by ruby itself.
+20 to 100 times slower than original CRuby method.
 
 ## Support template
 

@@ -37,7 +37,7 @@ module PurePack
 
     CMD_MOVE = [:"@", :x, :X]
 
-    CMD_OTHER = [:w, :U, :p, :P, :M] # not supprt p, P(pointer), U(UTF-8), M(qprint) conversion yet
+    CMD_OTHER = [:w, :U, :p, :P, :M] # not supprt p, P(pointer), U(UTF-8)  conversion yet
 
     BASE64 = Hash[
       ['A'..'Z','a'..'z', '0'..'9', ["+", "/", "="]].map(&:to_a).flatten.zip((0..64).to_a)
@@ -49,6 +49,10 @@ module PurePack
       0,"0000", 1,"0001",  2,"0010",  3,"0011",  4,"0100",  5,"0101",  6,"0110",  7,"0111",
       8,"1000", 9,"1001", 10,"1010", 11,"1011", 12,"1100", 13,"1101", 14,"1110", 15,"1111"
     ]
+
+    HEX = Hash[['0'..'9','A'..'F', ["\n"]].map(&:to_a).flatten.zip((0..16).to_a)]
+
+    HEX_R = HEX.invert
 
     #
     # Unpack method
@@ -109,10 +113,12 @@ module PurePack
             end
           conv_func = :unpack_float
         when *CMD_OTHER
+          option = [cmd, n[3]]
           case cmd
           when :w
-            option = [cmd, n[3]]
             conv_func = :unpack_ber
+          when :M
+            conv_func = :unpack_qp
           end
         when *CMD_MOVE
           cnt =
@@ -197,6 +203,8 @@ module PurePack
           case cmd
           when :w
             conv_func = :pack_ber
+          when :M
+            conv_func = :pack_qp
           end
         when *CMD_MOVE
           lcnt =
@@ -227,6 +235,10 @@ module PurePack
 
     def num_to_bin(num) # same as "%08B" % num, num must be < 256
       a, b = (0xff & num).divmod(16); BINARY[a]+BINARY[b]
+    end
+
+    def num_to_hex(num) # same as "%02X" % num, num must be < 256
+      a, b = (0xff & num).divmod(16); HEX_R[a]+HEX_R[b]
     end
 
     def int_split(i, n) # int_split(12345678, 1000) => [12, 345, 678]
@@ -373,7 +385,7 @@ module PurePack
     def pack_uu(ary, offset, conv_size, ret_cnt, options)
       ret_cnt[0] = 1
 
-      if (a = ary[offset][0..-1]) == ""
+      if (a = ary[offset]) == ""
         ""
       else
         a += "\x00" * (2 - ((a.size + 2)%3)) # add padding
@@ -385,6 +397,55 @@ module PurePack
           ((n.size * 3 / 4).to_i + 0x20).chr + n + "\n"
         }.join
       end
+    end
+
+    #
+    # Q Printable
+    #
+    def unpack_qp(str, offset, conv_size, ret_cnt, options)
+      (ret_cnt[0] = 0 ; return [""]) unless str[offset]
+
+      r = "" ; esc = nil ; cnt = 0
+      while (c = str[offset+cnt])
+        (esc=nil ; next) if esc == "=\n"
+        (r << esc[1,2].hex.chr ; esc=nil) if esc && (esc.size == 3)
+        if esc && HEX[c]
+          esc << c
+        elsif esc && (not HEX[c])
+          r << esc << c ; esc=nil
+        else
+          c == "=" ? esc = c : r << c
+        end
+        cnt += 1
+      end
+
+      ret_cnt[0] = cnt ; [r]
+    end
+
+    #------------
+    def pack_qp(ary, offset, conv_size, ret_cnt, options)
+      return "" if (a = ary[offset]) == ""
+
+      r = "" ; cnt = 0
+      while (c = a[cnt])
+        case c
+        when "\t"
+          r << c
+        when "\n"
+          r << "=\n" if r[-1] == "\t" || r[-1] == " "
+          r << c
+        when "="
+          r << "=3D"
+        when " ".."~"
+          r << c
+        else
+          r << "=" << num_to_hex(c.ord)
+        end
+        cnt += 1
+      end
+      r << "=\n" if r[-1] != "\n"
+
+      ret_cnt[0] = 1 ; r
     end
 
     #
@@ -413,7 +474,7 @@ module PurePack
       cmd, last_c = options
       ret_cnt[0] = 1
 
-      if (a = ary[offset][0..-1]) == ""
+      if (a = ary[offset]) == ""
         ""
       else
         r = "" ; rr = ""
