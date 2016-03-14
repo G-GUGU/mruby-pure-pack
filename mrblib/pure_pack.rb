@@ -508,7 +508,7 @@ module PurePack
       r = [] ; cnt = 0
 
       conv_size.times {
-        n = 0
+        n = 0 ; c = 0xff
         begin
           c = (0xff & str[offset+cnt].ord)
           n = n * 128 + (0x7f & c) ; cnt += 1

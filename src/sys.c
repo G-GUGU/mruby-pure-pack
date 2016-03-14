@@ -13,7 +13,7 @@ mrb_sys_endian_little(mrb_state *mrb, mrb_value self)
   if (*(char*)&x) {
     return mrb_true_value(); // little endian
   }else{
-    return mrb_false_value(); // bit endian
+    return mrb_false_value(); // big endian
   }
 }
 

@@ -6,7 +6,7 @@ Add Array#pack and String#unpack methods on MRuby. Almost all code is written by
 
 ## Support template
 
-Same as CRuby but not support 'U'(UTF-8), 'p' 'P'(pointer) and 'M'(q-printable) yet.
+Same as CRuby but not support 'U'(UTF-8) and 'p' 'P'(pointer) yet.
 
 ## License
 
