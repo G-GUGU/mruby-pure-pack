@@ -594,7 +594,7 @@ module PurePack
         r <<
         if exp == 0 && frac == 0 # zero
           (-1)**sign * 0.0
-        elsif exp == exp_off # inf or nan
+        elsif exp == (2*exp_off+1) # inf or nan
           frac == 0 ? ((-1)**sign * 1/0.0) : (0.0/0.0)
         else
           (exp == 0) ? (frac_off = 0.0 ; exp += 1) : frac_off = 1.0
@@ -629,7 +629,7 @@ module PurePack
           (frac_bits+2).times {
             frac *= 2 ; n << frac.to_i.to_s ; frac -= 1 if frac >= 1
           }
-          n = "%B" % (n.to_i(2)+1) if n[-2,2] == "11"
+          n = "%B" % (n[0, frac_bits+1].to_i(2)+1) if n[-1] == "1"
           frac =
             if (exp + exp_off) <= 0
               (exp+=1 ; n = "0" + n) while (exp + exp_off) <= 0
